@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid de Pintura</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(28, 15px);
+            grid-template-rows: repeat(28, 15px);
+            gap: 1px;
+            background-color: #ccc;
+            padding: 10px;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .cell {
+            width: 15px;
+            height: 15px;
+            background-color: white;
+            cursor: crosshair;
+        }
+        
+        .cell.painted {
+            background-color: #000;
+        }
+        
+        .guess-button {
+            background-color: #007bff;
+        }
+        
+        .guess-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .clear-button {
+            background-color: #dc3545;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .clear-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <h2>Grid de Pintura 28x28</h2>
+    
+    <div class="grid-container" id="grid"></div>
+
+    <div class="controls">
+        <button class="clear-button" onclick="clearGrid()">Limpar</button>
+        <button class="guess-button" onclick="guess()">Adivinhar</button>
+    </div>
+    
+    <script>
+        let isDrawing = false;
+        let grid = [];
+        
+        function createGrid() {
+            const gridContainer = document.getElementById('grid');
+            
+            for (let i = 0; i < 28 * 28; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                
+                cell.addEventListener('mousedown', startDrawing);
+                cell.addEventListener('mouseenter', draw);
+                cell.addEventListener('mouseup', stopDrawing);
+                
+                gridContainer.appendChild(cell);
+                grid.push(0);
+            }
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            paintCell(e.target);
+        }
+        
+        function draw(e) {
+            if (isDrawing) {
+                paintCell(e.target);
+            }
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function paintCell(cell) {
+            if (cell.classList.contains('cell')) {
+                cell.classList.add('painted');
+                grid[parseInt(cell.dataset.index)] = 1;
+            }
+        }
+        
+        function clearGrid() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('painted');
+            });
+            grid.fill(0);
+        }
+        
+        function guess() {
+            fetch("/guess", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ grid })
+            })
+            .then(res => res.json())
+            .then(data => alert("Seu número: " + data.guess))
+        }
+        
+        document.addEventListener('selectstart', e => e.preventDefault());
+        document.addEventListener('mouseup', stopDrawing);
+        
+        createGrid();
+    </script>
+</body>
+</html>
