@@ -43,14 +43,26 @@ async fn guess(Json(payload): Json<Payload>) -> impl IntoResponse {
     let root = &vs.root();
 
     let model = nn::seq()
-        .add(nn::linear(root, 784, 32, Default::default()))
+        // conv 1
+        .add(nn::conv2d(root, 1, 16, 3, Default::default()))
         .add_fn(|xs| xs.relu())
-        .add(nn::linear(root, 32, 10, Default::default()));
+        .add_fn(|xs| xs.max_pool2d(2, 2, 0, 1, false))
+        // conv 2
+        .add(nn::conv2d(root, 16, 32, 3, Default::default()))
+        .add_fn(|xs| xs.relu())
+        .add_fn(|xs| xs.max_pool2d(2, 2, 0, 1, false))
+        // flatten
+        .add_fn(|xs| xs.flatten(1, -1))
+        // linear 1
+        .add(nn::linear(root, 32 * 5 * 5, 64, Default::default()))
+        .add_fn(|xs| xs.relu())
+        // output layer
+        .add(nn::linear(root, 64, 10, Default::default()));
 
     vs.load("models/model.ot").unwrap();
 
     let guess = Tensor::from_slice(&payload.grid)
-        .reshape([1, 784])
+        .reshape([1, 1, 28, 28])
         .apply(&model)
         .argmax(1, false)
         .int64_value(&[]);
